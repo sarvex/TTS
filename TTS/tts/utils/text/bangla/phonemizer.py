@@ -40,7 +40,7 @@ def tag_text(text: str):
     # remove multiple spaces
     text = re.sub(" +", " ", text)
     # create start and end
-    text = "start" + text + "end"
+    text = f"start{text}end"
     # tag text
     parts = re.split("[\u0600-\u06FF]+", text)
     # remove non chars

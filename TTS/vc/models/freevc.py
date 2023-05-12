@@ -34,7 +34,7 @@ class ResidualCouplingBlock(nn.Module):
         self.gin_channels = gin_channels
 
         self.flows = nn.ModuleList()
-        for i in range(n_flows):
+        for _ in range(n_flows):
             self.flows.append(
                 modules.ResidualCouplingLayer(
                     channels,
@@ -120,7 +120,7 @@ class Generator(torch.nn.Module):
         self.resblocks = nn.ModuleList()
         for i in range(len(self.ups)):
             ch = upsample_initial_channel // (2 ** (i + 1))
-            for j, (k, d) in enumerate(zip(resblock_kernel_sizes, resblock_dilation_sizes)):
+            for k, d in zip(resblock_kernel_sizes, resblock_dilation_sizes):
                 self.resblocks.append(resblock(ch, k, d))
 
         self.conv_post = Conv1d(ch, 1, 7, 1, padding=3, bias=False)
@@ -233,7 +233,9 @@ class MultiPeriodDiscriminator(torch.nn.Module):
         periods = [2, 3, 5, 7, 11]
 
         discs = [DiscriminatorS(use_spectral_norm=use_spectral_norm)]
-        discs = discs + [DiscriminatorP(i, use_spectral_norm=use_spectral_norm) for i in periods]
+        discs += [
+            DiscriminatorP(i, use_spectral_norm=use_spectral_norm) for i in periods
+        ]
         self.discriminators = nn.ModuleList(discs)
 
     def forward(self, y, y_hat):
@@ -241,7 +243,7 @@ class MultiPeriodDiscriminator(torch.nn.Module):
         y_d_gs = []
         fmap_rs = []
         fmap_gs = []
-        for i, d in enumerate(self.discriminators):
+        for d in self.discriminators:
             y_d_r, fmap_r = d(y)
             y_d_g, fmap_g = d(y_hat)
             y_d_rs.append(y_d_r)
@@ -279,14 +281,14 @@ class SpeakerEncoder(torch.nn.Module):
 
         if mel_len > partial_frames:
             mel_slices = self.compute_partial_slices(mel_len, partial_frames, partial_hop)
-            mels = list(mel[:, s] for s in mel_slices)
+            mels = [mel[:, s] for s in mel_slices]
             mels.append(last_mel)
             mels = torch.stack(tuple(mels), 0).squeeze(1)
 
             with torch.no_grad():
                 partial_embeds = self(mels)
             embed = torch.mean(partial_embeds, axis=0).unsqueeze(0)
-            # embed = embed / torch.linalg.norm(embed, 2)
+                # embed = embed / torch.linalg.norm(embed, 2)
         else:
             with torch.no_grad():
                 embed = self(last_mel)
@@ -565,11 +567,7 @@ class FreeVC(BaseVC):
         if spec_lengths is None:
             spec_lengths = (torch.ones(spec.size(0)) * spec.size(-1)).to(spec.device)
 
-        # If use_spk is False, compute g from mel using enc_spk
-        g = None
-        if not self.use_spk:
-            g = self.enc_spk(mel).unsqueeze(-1)
-
+        g = self.enc_spk(mel).unsqueeze(-1) if not self.use_spk else None
         # Compute m_p, logs_p, z, m_q, logs_q, and spec_mask using enc_p and enc_q
         _, m_p, logs_p, _ = self.enc_p(c, c_lengths)
         z, m_q, logs_q, spec_mask = self.enc_q(spec.transpose(1, 2), spec_lengths, g=g)
@@ -597,15 +595,14 @@ class FreeVC(BaseVC):
         Returns:
             torch.Tensor: Output tensor.
         """
-        if c_lengths == None:
+        if c_lengths is None:
             c_lengths = (torch.ones(c.size(0)) * c.size(-1)).to(c.device)
         if not self.use_spk:
             g = self.enc_spk.embed_utterance(mel)
             g = g.unsqueeze(-1)
         z_p, m_p, logs_p, c_mask = self.enc_p(c, c_lengths)
         z = self.flow(z_p, c_mask, g=g, reverse=True)
-        o = self.dec(z * c_mask, g=g)
-        return o
+        return self.dec(z * c_mask, g=g)
 
     def extract_wavlm_features(self, y):
         """Extract WavLM features from an audio tensor.
@@ -678,8 +675,7 @@ class FreeVC(BaseVC):
 
     @staticmethod
     def init_from_config(config: "VitsConfig", samples: Union[List[List], List[Dict]] = None, verbose=True):
-        model = FreeVC(config)
-        return model
+        return FreeVC(config)
 
     def load_checkpoint(self, config, checkpoint_path, eval=False, strict=True, cache=False):
         state = load_fsspec(checkpoint_path, map_location=torch.device("cpu"), cache=cache)

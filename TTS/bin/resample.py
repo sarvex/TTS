@@ -28,7 +28,7 @@ def resample_files(input_dir, output_sr, output_dir=None, file_ext="wav", n_jobs
     audio_files = list(zip(audio_files, len(audio_files) * [output_sr]))
     with Pool(processes=n_jobs) as p:
         with tqdm(total=len(audio_files)) as pbar:
-            for _, _ in enumerate(p.imap_unordered(resample_file, audio_files)):
+            for _ in p.imap_unordered(resample_file, audio_files):
                 pbar.update()
 
     print("Done !")

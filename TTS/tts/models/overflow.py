@@ -147,19 +147,16 @@ class Overflow(BaseTTS):
             encoder_outputs, encoder_output_len, z, z_lengths
         )
 
-        outputs = {
+        return {
             "log_probs": log_probs + logdet,
             "alignments": fwd_alignments,
             "transition_vectors": transition_vectors,
             "means": means,
         }
 
-        return outputs
-
     @staticmethod
     def _training_stats(batch):
-        stats = {}
-        stats["avg_text_length"] = batch["text_lengths"].float().mean()
+        stats = {"avg_text_length": batch["text_lengths"].float().mean()}
         stats["avg_spec_length"] = batch["mel_lengths"].float().mean()
         stats["avg_text_batch_occupancy"] = (batch["text_lengths"].float() / batch["text_lengths"].float().max()).mean()
         stats["avg_spec_batch_occupancy"] = (batch["mel_lengths"].float() / batch["mel_lengths"].float().max()).mean()
@@ -386,7 +383,7 @@ class Overflow(BaseTTS):
 class NLLLoss(nn.Module):
     """Negative log likelihood loss."""
 
-    def forward(self, log_prob: torch.Tensor) -> dict:  # pylint: disable=no-self-use
+    def forward(self, log_prob: torch.Tensor) -> dict:    # pylint: disable=no-self-use
         """Compute the loss.
 
         Args:
@@ -396,6 +393,4 @@ class NLLLoss(nn.Module):
             Tensor: [1]
 
         """
-        return_dict = {}
-        return_dict["loss"] = -log_prob.mean()
-        return return_dict
+        return {"loss": -log_prob.mean()}

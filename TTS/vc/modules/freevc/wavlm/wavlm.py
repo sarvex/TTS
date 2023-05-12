@@ -99,7 +99,7 @@ def compute_mask_indices(
             lengths = np.random.poisson(mask_length, size=num_mask)
             lengths = [int(round(x)) for x in lengths]
         else:
-            raise Exception("unknown mask selection " + mask_type)
+            raise Exception(f"unknown mask selection {mask_type}")
 
         if sum(lengths) == 0:
             lengths[0] = min(mask_length, sz - 1)
@@ -144,7 +144,7 @@ def compute_mask_indices(
 
         mask_idcs.append(np.unique(mask_idc[mask_idc < sz]))
 
-    min_len = min([len(m) for m in mask_idcs])
+    min_len = min(len(m) for m in mask_idcs)
     for i, mask_idc in enumerate(mask_idcs):
         if len(mask_idc) > min_len:
             mask_idc = np.random.choice(mask_idc, min_len, replace=False)
@@ -415,7 +415,7 @@ class ConvFeatureExtractionModel(nn.Module):
             in_d = 1
             self.conv_layers = nn.ModuleList()
             for i, cl in enumerate(conv_layers):
-                assert len(cl) == 3, "invalid conv definition: " + str(cl)
+                assert len(cl) == 3, f"invalid conv definition: {str(cl)}"
                 (dim, k, stride) = cl
 
                 self.conv_layers.append(
@@ -454,8 +454,6 @@ class ConvFeatureExtractionModel(nn.Module):
                 if (i + 1) % 2 == 0:
                     self.conv_layers.append(torch.nn.MaxPool2d(2, stride=2, ceil_mode=True))
                     idim = int(math.ceil(idim / 2))
-        else:
-            pass
 
     def forward(self, x, mask=None):
         # BxT -> BxCxT

@@ -84,7 +84,7 @@ def setup_loader(ap: AudioProcessor, is_val: bool = False, verbose: bool = False
 
 def evaluation(model, criterion, data_loader, global_step):
     eval_loss = 0
-    for _, data in enumerate(data_loader):
+    for data in data_loader:
         with torch.no_grad():
             # setup input data
             inputs, labels = data
@@ -292,7 +292,7 @@ def main(args):  # pylint: disable=redefined-outer-name
         scheduler = None
 
     num_params = count_parameters(model)
-    print("\n > Model has {} parameters".format(num_params), flush=True)
+    print(f"\n > Model has {num_params} parameters", flush=True)
 
     if use_cuda:
         model = model.cuda()

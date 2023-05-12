@@ -126,7 +126,7 @@ class ParameterModel(nn.Module):
 
     def flat_start_output_layer(self, mean, std, transition_p):
         self.last_layer.weight.data.zero_()
-        self.last_layer.bias.data[0 : self.frame_channels] = mean
+        self.last_layer.bias.data[:self.frame_channels] = mean
         self.last_layer.bias.data[self.frame_channels : 2 * self.frame_channels] = OverflowUtils.inverse_softplus(std)
         self.last_layer.bias.data[2 * self.frame_channels :] = OverflowUtils.inverse_sigmod(transition_p)
 

@@ -207,8 +207,7 @@ class Synthesizer(object):
         save_wav(wav=wav, path=path, sample_rate=self.output_sample_rate)
 
     def voice_conversion(self, source_wav: str, target_wav: str) -> List[int]:
-        output_wav = self.vc_model.voice_conversion(source_wav, target_wav)
-        return output_wav
+        return self.vc_model.voice_conversion(source_wav, target_wav)
 
     def tts(
         self,
@@ -274,12 +273,11 @@ class Synthesizer(object):
                 )
             else:
                 speaker_embedding = None
-        else:
-            if speaker_name:
-                raise ValueError(
-                    f" [!] Missing speakers.json file path for selecting speaker {speaker_name}."
-                    "Define path for speaker.json if it is a multi-speaker model or remove defined speaker idx. "
-                )
+        elif speaker_name:
+            raise ValueError(
+                f" [!] Missing speakers.json file path for selecting speaker {speaker_name}."
+                "Define path for speaker.json if it is a multi-speaker model or remove defined speaker idx. "
+            )
 
         # handle multi-lingual
         language_id = None

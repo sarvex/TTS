@@ -158,9 +158,7 @@ class SpeakerEncoder(nn.Module):
         raw_embed = np.mean(partial_embeds, axis=0)
         embed = raw_embed / np.linalg.norm(raw_embed, 2)
 
-        if return_partials:
-            return embed, partial_embeds, wav_slices
-        return embed
+        return (embed, partial_embeds, wav_slices) if return_partials else embed
 
     def embed_speaker(self, wavs: List[np.ndarray], **kwargs):
         """

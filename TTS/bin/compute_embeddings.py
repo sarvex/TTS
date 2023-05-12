@@ -71,10 +71,7 @@ def compute_embeddings(
             embedd = encoder_manager.compute_embedding_from_clip(audio_file)
 
         # create speaker_mapping if target dataset is defined
-        speaker_mapping[embedding_key] = {}
-        speaker_mapping[embedding_key]["name"] = class_name
-        speaker_mapping[embedding_key]["embedding"] = embedd
-
+        speaker_mapping[embedding_key] = {"name": class_name, "embedding": embedd}
     if speaker_mapping:
         # save speaker_mapping if target dataset is defined
         if os.path.isdir(output_path):

@@ -37,10 +37,7 @@ train_samples, eval_samples = load_tts_samples(
 
 # gerenate a speaker unbalanced dataset
 for i, sample in enumerate(train_samples):
-    if i < 5:
-        sample["speaker_name"] = "ljspeech-0"
-    else:
-        sample["speaker_name"] = "ljspeech-1"
+    sample["speaker_name"] = "ljspeech-0" if i < 5 else "ljspeech-1"
 
 
 def is_balanced(lang_1, lang_2):
@@ -50,7 +47,9 @@ def is_balanced(lang_1, lang_2):
 class TestSamplers(unittest.TestCase):
     def test_language_random_sampler(self):  # pylint: disable=no-self-use
         random_sampler = torch.utils.data.RandomSampler(train_samples)
-        ids = functools.reduce(lambda a, b: a + b, [list(random_sampler) for i in range(100)])
+        ids = functools.reduce(
+            lambda a, b: a + b, [list(random_sampler) for _ in range(100)]
+        )
         en, pt = 0, 0
         for index in ids:
             if train_samples[index]["language"] == "en":
@@ -64,7 +63,9 @@ class TestSamplers(unittest.TestCase):
         weighted_sampler = torch.utils.data.sampler.WeightedRandomSampler(
             get_language_balancer_weights(train_samples), len(train_samples)
         )
-        ids = functools.reduce(lambda a, b: a + b, [list(weighted_sampler) for i in range(100)])
+        ids = functools.reduce(
+            lambda a, b: a + b, [list(weighted_sampler) for _ in range(100)]
+        )
         en, pt = 0, 0
         for index in ids:
             if train_samples[index]["language"] == "en":
@@ -78,7 +79,9 @@ class TestSamplers(unittest.TestCase):
         weighted_sampler = torch.utils.data.sampler.WeightedRandomSampler(
             get_speaker_balancer_weights(train_samples), len(train_samples)
         )
-        ids = functools.reduce(lambda a, b: a + b, [list(weighted_sampler) for i in range(100)])
+        ids = functools.reduce(
+            lambda a, b: a + b, [list(weighted_sampler) for _ in range(100)]
+        )
         spk1, spk2 = 0, 0
         for index in ids:
             if train_samples[index]["speaker_name"] == "ljspeech-0":
@@ -89,10 +92,7 @@ class TestSamplers(unittest.TestCase):
         assert is_balanced(spk1, spk2), "Speaker Weighted sampler is supposed to be balanced"
 
     def test_perfect_sampler(self):  # pylint: disable=no-self-use
-        classes = set()
-        for item in train_samples:
-            classes.add(item["speaker_name"])
-
+        classes = {item["speaker_name"] for item in train_samples}
         sampler = PerfectBatchSampler(
             train_samples,
             classes,
@@ -102,7 +102,9 @@ class TestSamplers(unittest.TestCase):
             shuffle=False,
             drop_last=True,
         )
-        batchs = functools.reduce(lambda a, b: a + b, [list(sampler) for i in range(100)])
+        batchs = functools.reduce(
+            lambda a, b: a + b, [list(sampler) for _ in range(100)]
+        )
         for batch in batchs:
             spk1, spk2 = 0, 0
             # for in each batch
@@ -114,10 +116,7 @@ class TestSamplers(unittest.TestCase):
             assert spk1 == spk2, "PerfectBatchSampler is supposed to be perfectly balanced"
 
     def test_perfect_sampler_shuffle(self):  # pylint: disable=no-self-use
-        classes = set()
-        for item in train_samples:
-            classes.add(item["speaker_name"])
-
+        classes = {item["speaker_name"] for item in train_samples}
         sampler = PerfectBatchSampler(
             train_samples,
             classes,
@@ -127,7 +126,9 @@ class TestSamplers(unittest.TestCase):
             shuffle=True,
             drop_last=False,
         )
-        batchs = functools.reduce(lambda a, b: a + b, [list(sampler) for i in range(100)])
+        batchs = functools.reduce(
+            lambda a, b: a + b, [list(sampler) for _ in range(100)]
+        )
         for batch in batchs:
             spk1, spk2 = 0, 0
             # for in each batch
@@ -154,7 +155,9 @@ class TestSamplers(unittest.TestCase):
             weighted_sampler = torch.utils.data.sampler.WeightedRandomSampler(
                 get_length_balancer_weights(train_samples, num_buckets=2), len(train_samples)
             )
-            ids = functools.reduce(lambda a, b: a + b, [list(weighted_sampler) for i in range(100)])
+            ids = functools.reduce(
+                lambda a, b: a + b, [list(weighted_sampler) for _ in range(100)]
+            )
             len1, len2 = 0, 0
             for index in ids:
                 if train_samples[index]["audio_length"] < max_audio:

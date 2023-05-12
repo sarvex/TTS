@@ -70,7 +70,7 @@ class ModelManager(object):
         """
 
         def _add_model(model_name: str):
-            if not "coqui_studio" in model_name:
+            if "coqui_studio" not in model_name:
                 return
             model_type, lang, dataset, model = model_name.split("/")
             if model_type not in self.models_dict:
@@ -358,30 +358,29 @@ class ModelManager(object):
     @staticmethod
     def _update_path(field_name, new_path, config_path):
         """Update the path in the model config.json for the current environment after download"""
-        if new_path and os.path.exists(new_path):
-            config = load_config(config_path)
-            field_names = field_name.split(".")
-            if len(field_names) > 1:
-                # field name points to a sub-level field
-                sub_conf = config
-                for fd in field_names[:-1]:
-                    if fd in sub_conf:
-                        sub_conf = sub_conf[fd]
-                    else:
-                        return
-                if isinstance(sub_conf[field_names[-1]], list):
-                    sub_conf[field_names[-1]] = [new_path]
+        if not new_path or not os.path.exists(new_path):
+            return
+        config = load_config(config_path)
+        field_names = field_name.split(".")
+        if len(field_names) > 1:
+            # field name points to a sub-level field
+            sub_conf = config
+            for fd in field_names[:-1]:
+                if fd in sub_conf:
+                    sub_conf = sub_conf[fd]
                 else:
-                    sub_conf[field_names[-1]] = new_path
-            else:
-                # field name points to a top-level field
-                if not field_name in config:
                     return
-                if isinstance(config[field_name], list):
-                    config[field_name] = [new_path]
-                else:
-                    config[field_name] = new_path
-            config.save_json(config_path)
+            if isinstance(sub_conf[field_names[-1]], list):
+                sub_conf[field_names[-1]] = [new_path]
+            else:
+                sub_conf[field_names[-1]] = new_path
+        elif field_name in config:
+            config[field_name] = (
+                [new_path] if isinstance(config[field_name], list) else new_path
+            )
+        else:
+            return
+        config.save_json(config_path)
 
     @staticmethod
     def _download_zip_file(file_url, output_folder, progress_bar):
@@ -420,6 +419,6 @@ class ModelManager(object):
         if key in my_dict.keys() and my_dict[key] is not None:
             if not isinstance(key, str):
                 return True
-            if isinstance(key, str) and len(my_dict[key]) > 0:
+            if len(my_dict[key]) > 0:
                 return True
         return False

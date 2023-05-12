@@ -34,8 +34,7 @@ class BN_Phonemizer(BasePhonemizer):
 
     @staticmethod
     def phonemize_bn(text: str, separator: str = "|") -> str:  # pylint: disable=unused-argument
-        ph = bangla_text_to_phonemes(text)
-        return ph
+        return bangla_text_to_phonemes(text)
 
     def _phonemize(self, text, separator):
         return self.phonemize_bn(text, separator)
@@ -59,4 +58,4 @@ if __name__ == "__main__":
     print(e.language)
     print(e.name())
     print(e.is_available())
-    print("`" + e.phonemize(txt) + "`")
+    print(f"`{e.phonemize(txt)}`")

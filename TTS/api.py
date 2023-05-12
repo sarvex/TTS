@@ -151,14 +151,12 @@ class CS_API:
             payload["voice_id"] = speaker.id
         else:
             payload["speaker_id"] = speaker.id
-        payload.update(
-            {
-                "emotion": emotion,
-                "name": speaker.name,
-                "text": text,
-                "speed": speed,
-            }
-        )
+        payload |= {
+            "emotion": emotion,
+            "name": speaker.name,
+            "text": text,
+            "speed": speed,
+        }
         return payload
 
     def tts(
@@ -303,9 +301,7 @@ class TTS:
 
     @property
     def is_coqui_studio(self):
-        if self.model_name is None:
-            return False
-        return "coqui_studio" in self.model_name
+        return False if self.model_name is None else "coqui_studio" in self.model_name
 
     @property
     def is_multi_lingual(self):
@@ -434,7 +430,7 @@ class TTS:
                 raise ValueError("Model is not multi-speaker but `speaker` is provided.")
             if not self.is_multi_lingual and language is not None:
                 raise ValueError("Model is not multi-lingual but `language` is provided.")
-            if not emotion is None and not speed is None:
+            if emotion is not None and speed is not None:
                 raise ValueError("Emotion and speed can only be used with Coqui Studio models.")
         else:
             if emotion is None:
@@ -526,7 +522,7 @@ class TTS:
                 text=text, speaker_name=speaker, language=language, emotion=emotion, speed=speed
             )
 
-        wav = self.synthesizer.tts(
+        return self.synthesizer.tts(
             text=text,
             speaker_name=speaker,
             language_name=language,
@@ -536,7 +532,6 @@ class TTS:
             style_text=None,
             reference_speaker_name=None,
         )
-        return wav
 
     def tts_to_file(
         self,
@@ -592,8 +587,9 @@ class TTS:
             target_wav (str):`
                 Path to the target wav file.
         """
-        wav = self.voice_converter.voice_conversion(source_wav=source_wav, target_wav=target_wav)
-        return wav
+        return self.voice_converter.voice_conversion(
+            source_wav=source_wav, target_wav=target_wav
+        )
 
     def voice_conversion_to_file(
         self,
@@ -638,8 +634,9 @@ class TTS:
             self.tts_to_file(text=text, speaker=None, language=language, file_path=fp.name)
         if self.voice_converter is None:
             self.load_vc_model_by_name("voice_conversion_models/multilingual/vctk/freevc24")
-        wav = self.voice_converter.voice_conversion(source_wav=fp.name, target_wav=speaker_wav)
-        return wav
+        return self.voice_converter.voice_conversion(
+            source_wav=fp.name, target_wav=speaker_wav
+        )
 
     def tts_with_vc_to_file(
         self, text: str, language: str = None, speaker_wav: str = None, file_path: str = "output.wav"

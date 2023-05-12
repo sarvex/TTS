@@ -83,13 +83,11 @@ def _db_to_amp(x, C=1):
 
 
 def amp_to_db(magnitudes):
-    output = _amp_to_db(magnitudes)
-    return output
+    return _amp_to_db(magnitudes)
 
 
 def db_to_amp(magnitudes):
-    output = _db_to_amp(magnitudes)
-    return output
+    return _db_to_amp(magnitudes)
 
 
 def wav_to_spec(y, n_fft, hop_length, win_length, center=False):
@@ -108,8 +106,8 @@ def wav_to_spec(y, n_fft, hop_length, win_length, center=False):
         print("max value is ", torch.max(y))
 
     global hann_window
-    dtype_device = str(y.dtype) + "_" + str(y.device)
-    wnsize_dtype_device = str(win_length) + "_" + dtype_device
+    dtype_device = f"{str(y.dtype)}_{str(y.device)}"
+    wnsize_dtype_device = f"{str(win_length)}_{dtype_device}"
     if wnsize_dtype_device not in hann_window:
         hann_window[wnsize_dtype_device] = torch.hann_window(win_length).to(dtype=y.dtype, device=y.device)
 
@@ -146,8 +144,8 @@ def spec_to_mel(spec, n_fft, num_mels, sample_rate, fmin, fmax):
         - mel : :math:`[B,C,T]`
     """
     global mel_basis
-    dtype_device = str(spec.dtype) + "_" + str(spec.device)
-    fmax_dtype_device = str(fmax) + "_" + dtype_device
+    dtype_device = f"{str(spec.dtype)}_{str(spec.device)}"
+    fmax_dtype_device = f"{str(fmax)}_{dtype_device}"
     if fmax_dtype_device not in mel_basis:
         mel = librosa_mel_fn(sr=sample_rate, n_fft=n_fft, n_mels=num_mels, fmin=fmin, fmax=fmax)
         mel_basis[fmax_dtype_device] = torch.from_numpy(mel).to(dtype=spec.dtype, device=spec.device)
@@ -172,9 +170,9 @@ def wav_to_mel(y, n_fft, num_mels, sample_rate, hop_length, win_length, fmin, fm
         print("max value is ", torch.max(y))
 
     global mel_basis, hann_window
-    dtype_device = str(y.dtype) + "_" + str(y.device)
-    fmax_dtype_device = str(fmax) + "_" + dtype_device
-    wnsize_dtype_device = str(win_length) + "_" + dtype_device
+    dtype_device = f"{str(y.dtype)}_{str(y.device)}"
+    fmax_dtype_device = f"{str(fmax)}_{dtype_device}"
+    wnsize_dtype_device = f"{str(win_length)}_{dtype_device}"
     if fmax_dtype_device not in mel_basis:
         mel = librosa_mel_fn(sr=sample_rate, n_fft=n_fft, n_mels=num_mels, fmin=fmin, fmax=fmax)
         mel_basis[fmax_dtype_device] = torch.from_numpy(mel).to(dtype=y.dtype, device=y.device)
@@ -263,9 +261,11 @@ class VitsDataset(TTSDataset):
         raw_text = item["text"]
 
         wav, _ = load_audio(item["audio_file"])
-        if self.model_args.encoder_sample_rate is not None:
-            if wav.size(1) % self.model_args.encoder_sample_rate != 0:
-                wav = wav[:, : -int(wav.size(1) % self.model_args.encoder_sample_rate)]
+        if (
+            self.model_args.encoder_sample_rate is not None
+            and wav.size(1) % self.model_args.encoder_sample_rate != 0
+        ):
+            wav = wav[:, : -int(wav.size(1) % self.model_args.encoder_sample_rate)]
 
         wav_filename = os.path.basename(item["audio_file"])
 
@@ -321,7 +321,7 @@ class VitsDataset(TTSDataset):
             torch.LongTensor([x.size(1) for x in batch["wav"]]), dim=0, descending=True
         )
 
-        max_text_len = max([len(x) for x in batch["token_ids"]])
+        max_text_len = max(len(x) for x in batch["token_ids"])
         token_lens = torch.LongTensor(batch["token_len"])
         token_rel_lens = token_lens / token_lens.max()
 
@@ -902,8 +902,7 @@ class Vits(BaseTTS):
         if speaker_ids is not None and not hasattr(self, "emb_g"):
             raise ValueError("[!] Cannot use speaker-ids without enabling speaker embedding.")
 
-        g = speaker_ids if speaker_ids is not None else d_vectors
-        return g
+        return speaker_ids if speaker_ids is not None else d_vectors
 
     def forward_mas(self, outputs, z_p, m_p, logs_p, x, x_mask, y_mask, g, lang_emb):
         # find the alignment path
@@ -1089,7 +1088,7 @@ class Vits(BaseTTS):
         self,
         x,
         aux_input={"x_lengths": None, "d_vectors": None, "speaker_ids": None, "language_ids": None, "durations": None},
-    ):  # pylint: disable=dangerous-default-value
+    ):    # pylint: disable=dangerous-default-value
         """
         Note:
             To run in batch mode, provide `x_lengths` else model assumes that the batch size is 1.
@@ -1159,7 +1158,7 @@ class Vits(BaseTTS):
 
         o = self.waveform_decoder((z * y_mask)[:, :, : self.max_inference_len], g=g)
 
-        outputs = {
+        return {
             "model_outputs": o,
             "alignments": attn.squeeze(1),
             "durations": w_ceil,
@@ -1169,7 +1168,6 @@ class Vits(BaseTTS):
             "logs_p": logs_p,
             "y_mask": y_mask,
         }
-        return outputs
 
     @torch.no_grad()
     def inference_voice_conversion(
@@ -1398,13 +1396,17 @@ class Vits(BaseTTS):
 
         # get speaker  id/d_vector
         speaker_id, d_vector, language_id = None, None, None
-        if hasattr(self, "speaker_manager"):
-            if config.use_d_vector_file:
-                if speaker_name is None:
-                    d_vector = self.speaker_manager.get_random_embedding()
-                else:
-                    d_vector = self.speaker_manager.get_mean_embedding(speaker_name, num_samples=None, randomize=False)
-            elif config.use_speaker_embedding:
+        if config.use_d_vector_file:
+            if hasattr(self, "speaker_manager"):
+                d_vector = (
+                    self.speaker_manager.get_random_embedding()
+                    if speaker_name is None
+                    else self.speaker_manager.get_mean_embedding(
+                        speaker_name, num_samples=None, randomize=False
+                    )
+                )
+        elif config.use_speaker_embedding:
+            if hasattr(self, "speaker_manager"):
                 if speaker_name is None:
                     speaker_id = self.speaker_manager.get_random_id()
                 else:
@@ -1450,8 +1452,10 @@ class Vits(BaseTTS):
                 use_griffin_lim=True,
                 do_trim_silence=False,
             ).values()
-            test_audios["{}-audio".format(idx)] = wav
-            test_figures["{}-alignment".format(idx)] = plot_alignment(alignment.T, output_fig=False)
+            test_audios[f"{idx}-audio"] = wav
+            test_figures[f"{idx}-alignment"] = plot_alignment(
+                alignment.T, output_fig=False
+            )
         return {"figures": test_figures, "audios": test_audios}
 
     def test_log(
@@ -1628,24 +1632,23 @@ class Vits(BaseTTS):
                     num_workers=config.num_eval_loader_workers if is_eval else config.num_loader_workers,
                     pin_memory=False,
                 )
+            elif num_gpus > 1:
+                loader = DataLoader(
+                    dataset,
+                    sampler=sampler,
+                    batch_size=config.eval_batch_size if is_eval else config.batch_size,
+                    collate_fn=dataset.collate_fn,
+                    num_workers=config.num_eval_loader_workers if is_eval else config.num_loader_workers,
+                    pin_memory=False,
+                )
             else:
-                if num_gpus > 1:
-                    loader = DataLoader(
-                        dataset,
-                        sampler=sampler,
-                        batch_size=config.eval_batch_size if is_eval else config.batch_size,
-                        collate_fn=dataset.collate_fn,
-                        num_workers=config.num_eval_loader_workers if is_eval else config.num_loader_workers,
-                        pin_memory=False,
-                    )
-                else:
-                    loader = DataLoader(
-                        dataset,
-                        batch_sampler=sampler,
-                        collate_fn=dataset.collate_fn,
-                        num_workers=config.num_eval_loader_workers if is_eval else config.num_loader_workers,
-                        pin_memory=False,
-                    )
+                loader = DataLoader(
+                    dataset,
+                    batch_sampler=sampler,
+                    collate_fn=dataset.collate_fn,
+                    num_workers=config.num_eval_loader_workers if is_eval else config.num_loader_workers,
+                    pin_memory=False,
+                )
         return loader
 
     def get_optimizer(self) -> List:
@@ -1782,7 +1785,7 @@ class VitsCharacters(BaseCharacters):
         self._vocab = [self._pad] + list(self._punctuations) + list(self._characters) + [self._blank]
         self._char_to_id = {char: idx for idx, char in enumerate(self.vocab)}
         # pylint: disable=unnecessary-comprehension
-        self._id_to_char = {idx: char for idx, char in enumerate(self.vocab)}
+        self._id_to_char = dict(enumerate(self.vocab))
 
     @staticmethod
     def init_from_config(config: Coqpit):

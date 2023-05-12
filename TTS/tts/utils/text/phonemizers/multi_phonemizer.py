@@ -27,10 +27,10 @@ class MultiPhonemizer:
 
     @staticmethod
     def init_phonemizers(lang_to_phonemizer_name: Dict) -> Dict:
-        lang_to_phonemizer = {}
-        for k, v in lang_to_phonemizer_name.items():
-            lang_to_phonemizer[k] = get_phonemizer_by_name(v, language=k)
-        return lang_to_phonemizer
+        return {
+            k: get_phonemizer_by_name(v, language=k)
+            for k, v in lang_to_phonemizer_name.items()
+        }
 
     @staticmethod
     def name():

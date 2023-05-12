@@ -215,8 +215,7 @@ class NeuralHMM(nn.Module):
         """
         batch_size, T, _ = mel_inputs.shape
         go_tokens = self.go_tokens.unsqueeze(0).expand(batch_size, self.ar_order, self.frame_channels)
-        ar_inputs = torch.cat((go_tokens, mel_inputs), dim=1)[:, :T]
-        return ar_inputs
+        return torch.cat((go_tokens, mel_inputs), dim=1)[:, :T]
 
     @staticmethod
     def _initialize_forward_algorithm_variables(mel_inputs, N):
@@ -312,8 +311,7 @@ class NeuralHMM(nn.Module):
         # Ideally, we should clean the dataset otherwise this is a little hack uncomment the line below
         final_log_c = final_log_c.clamp(min=torch.finfo(final_log_c.dtype).min)
 
-        sum_final_log_c = torch.logsumexp(final_log_c, dim=1)
-        return sum_final_log_c
+        return torch.logsumexp(final_log_c, dim=1)
 
     @staticmethod
     def get_mask_for_last_item(lengths, device, out_tensor=None):
@@ -332,8 +330,7 @@ class NeuralHMM(nn.Module):
         ids = (
             torch.arange(0, max_len, device=device) if out_tensor is None else torch.arange(0, max_len, out=out_tensor)
         )
-        mask = ids == lengths.unsqueeze(1) - 1
-        return mask
+        return ids == lengths.unsqueeze(1) - 1
 
     @torch.inference_mode()
     def inference(

@@ -34,7 +34,7 @@ class BasePhonemizer(abc.ABC):
     def __init__(self, language, punctuations=Punctuation.default_puncs(), keep_puncs=False):
         # ensure the backend is installed on the system
         if not self.is_available():
-            raise RuntimeError("{} not installed on your system".format(self.name()))  # pragma: nocover
+            raise RuntimeError(f"{self.name()} not installed on your system")
 
         # ensure the backend support the requested language
         self._language = self._init_language(language)
